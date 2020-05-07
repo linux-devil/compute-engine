@@ -47,10 +47,10 @@ arm_compiler_configure(
 #    reliable downloads.
 http_archive(
     name = "org_tensorflow",
-    sha256 = "8e86547c8238637cdc895ec53f02adedad4dfa2a7fcfee06dbdeb9f0e3be6168",
-    strip_prefix = "tensorflow-a80d96c6634cd005b3841d462030448f9f551a14",
+    sha256 = "13fd904f7da15b1b90f5016a48e88f0b82a3a2472fc957bf7afbcfbb0c7cc6a7",
+    strip_prefix = "tensorflow-0670e04d5664ee6e1485becd8abe410a74e2f4e7",
     urls = [
-        "https://github.com/tensorflow/tensorflow/archive/a80d96c6634cd005b3841d462030448f9f551a14.tar.gz",
+        "https://github.com/lgeiger/tensorflow/archive/0670e04d5664ee6e1485becd8abe410a74e2f4e7.tar.gz",
     ],
 )
 
