@@ -128,7 +128,7 @@ struct SetBitpackedActivations : public OpRewritePattern<BinaryOp> {
     if (!input_op || !input_op->hasOneUse()) return failure();
 
     // Try and match `input_op` to a binary convolution.
-    auto inner_bconv_op = dyn_cast_or_null<TF::LceBconv2dOp>(input_op);
+    auto inner_bconv_op = dyn_cast_or_null<TF::Bconv2dOp>(input_op);
     if (inner_bconv_op) {
       if (inner_bconv_op.padding() == "SAME" &&
           inner_bconv_op.pad_values() != 1) {
@@ -137,7 +137,7 @@ struct SetBitpackedActivations : public OpRewritePattern<BinaryOp> {
 
       if (auto maybe_bitpacked_type = maybeGetBitpackedType(
               rewriter, inner_bconv_op.getType().cast<ShapedType>())) {
-        rewriter.replaceOpWithNewOp<TF::LceBconv2dOp>(
+        rewriter.replaceOpWithNewOp<TF::Bconv2dOp>(
             inner_bconv_op, *maybe_bitpacked_type, inner_bconv_op.getOperands(),
             inner_bconv_op.getAttrs());
         return success();
@@ -153,7 +153,7 @@ struct SetBitpackedActivations : public OpRewritePattern<BinaryOp> {
 
       if (auto bitpacked_type = maybeGetBitpackedType(
               rewriter, maxpool_op.getType().cast<ShapedType>())) {
-        rewriter.replaceOpWithNewOp<TF::LceBMaxPool2dOp>(
+        rewriter.replaceOpWithNewOp<TF::BMaxPool2dOp>(
             maxpool_op, *bitpacked_type, maxpool_op.input(),
             rewriter.getStringAttr(maxpool_op.padding()),
             rewriter.getIntegerAttr(rewriter.getIntegerType(32),
@@ -179,8 +179,8 @@ void OptimizeLCE::runOnFunction() {
 
   TFL::populateWithGenerated(ctx, &patterns);
   if (experimental_enable_bitpacked_activations_) {
-    patterns.insert<SetBitpackedActivations<TF::LceBconv2dOp>>(ctx);
-    patterns.insert<SetBitpackedActivations<TF::LceBMaxPool2dOp>>(ctx);
+    patterns.insert<SetBitpackedActivations<TF::Bconv2dOp>>(ctx);
+    patterns.insert<SetBitpackedActivations<TF::BMaxPool2dOp>>(ctx);
   }
   applyPatternsAndFoldGreedily(func, patterns);
 }

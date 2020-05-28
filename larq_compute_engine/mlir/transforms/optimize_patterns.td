@@ -11,13 +11,13 @@ def HasOneUse : Constraint<CPred<"$0.hasOneUse()">>;
 
 // TODO: Check shapes before fusing
 multiclass FuseAddOrSubWithBConv2D<dag binaryOp> {
-  def : Pat<(binaryOp (LQ_LceBconv2dOp:$output $input, $filter,
+  def : Pat<(binaryOp (LQ_Bconv2dOp:$output $input, $filter,
                           $post_activation_multiplier, (ConstantOp F32ElementsAttr:$post_activation_bias),
                           $channels_in, $dilation_height_factor, $dilation_width_factor,
                           $fused_activation_function,
                           $pad_values, $padding, $stride_height, $stride_width),
                       (ConstantOp F32ElementsAttr:$value), TFL_AF_None),
-            (LQ_LceBconv2dOp $input, $filter, $post_activation_multiplier,
+            (LQ_Bconv2dOp $input, $filter, $post_activation_multiplier,
                           (binaryOp (ConstantOp $post_activation_bias), (ConstantOp $value), TFL_AF_None),
                           $channels_in, $dilation_height_factor, $dilation_width_factor,
                           $fused_activation_function,
@@ -29,14 +29,14 @@ foreach binaryOp = [TFL_AddOp, TFL_SubOp] in
 
 // TODO: Check shapes before fusing
 multiclass FuseMulOrDivWithBConv2D<dag binaryOp> {
-  def : Pat<(binaryOp (LQ_LceBconv2dOp:$conv_output $input, $filter,
+  def : Pat<(binaryOp (LQ_Bconv2dOp:$conv_output $input, $filter,
                         (ConstantOp F32ElementsAttr:$post_activation_multiplier),
                         (ConstantOp F32ElementsAttr:$post_activation_bias),
                         $channels_in, $dilation_height_factor, $dilation_width_factor,
                         $fused_activation_function,
                         $pad_values, $padding, $stride_height, $stride_width),
                       (ConstantOp F32ElementsAttr:$value), TFL_AF_None),
-            (LQ_LceBconv2dOp $input, $filter,
+            (LQ_Bconv2dOp $input, $filter,
                         (binaryOp (ConstantOp $post_activation_multiplier),
                                   (ConstantOp $value), TFL_AF_None),
                         (binaryOp (ConstantOp $post_activation_bias),
@@ -50,13 +50,13 @@ multiclass FuseMulOrDivWithBConv2D<dag binaryOp> {
 def HasNegativeValues : AttrConstraint<CPred<"HasNegativeValues($_self)">>;
 def ComputeBSignAndExpandTo4D : NativeCodeCall<"ComputeBSignAndExpandTo4D($0)">;
 
-def : Pat<(LQ_LceBconv2dOp $input, (ConstantOp F32ElementsAttr:$filter),
+def : Pat<(LQ_Bconv2dOp $input, (ConstantOp F32ElementsAttr:$filter),
             (ConstantOp HasNegativeValues:$post_activation_multiplier),
             $post_activation_bias, $channels_in,
             $dilation_height_factor, $dilation_width_factor,
             TFL_AF_None, $pad_values, $padding,
             $stride_height, $stride_width),
-          (LQ_LceBconv2dOp $input,
+          (LQ_Bconv2dOp $input,
             (TFL_MulOp (ConstantOp $filter), (ConstantOp (ComputeBSignAndExpandTo4D $post_activation_multiplier)), TFL_AF_None),
             (TFL_AbsOp (ConstantOp $post_activation_multiplier)),
             $post_activation_bias, $channels_in,
@@ -72,21 +72,21 @@ class ConstantValue<string val> : AttrConstraint<CPred<"IsConstantValue($_self, 
 
 // Fuse activation function into BConv2D
 multiclass FuseActFnIntoConvOpPat<dag ActFnOp, dag ActFnAttr> {
-  def : Pat<(ActFnOp (LQ_LceBconv2dOp:$conv_output $input, $filter,
+  def : Pat<(ActFnOp (LQ_Bconv2dOp:$conv_output $input, $filter,
                         (ConstantOp ConstantValue<"1.0f">:$post_activation_multiplier),
                         (ConstantOp ConstantValue<"0.0f">:$post_activation_bias),
                         $channels_in, $dilation_height_factor, $dilation_width_factor,
                         TFL_AF_None,
                         $pad_values, ConstantAttr<StrAttr, "VALID">:$padding,
                         $stride_height, $stride_width)),
-            (LQ_LceBconv2dOp $input, $filter,
+            (LQ_Bconv2dOp $input, $filter,
                         (ConstantOp $post_activation_multiplier),
                         (ConstantOp $post_activation_bias),
                         $channels_in, $dilation_height_factor, $dilation_width_factor,
                         ActFnAttr,
                         $pad_values, $padding, $stride_height, $stride_width),
          [(HasOneUse $conv_output)]>;
-  def : Pat<(ActFnOp (LQ_LceBconv2dOp:$conv_output $input, $filter,
+  def : Pat<(ActFnOp (LQ_Bconv2dOp:$conv_output $input, $filter,
                         (ConstantOp ConstantValue<"1.0f">:$post_activation_multiplier),
                         (ConstantOp ConstantValue<"0.0f">:$post_activation_bias),
                         $channels_in, $dilation_height_factor, $dilation_width_factor,
@@ -94,7 +94,7 @@ multiclass FuseActFnIntoConvOpPat<dag ActFnOp, dag ActFnAttr> {
                         ConstantAttr<I32Attr, "1">:$pad_values,
                         ConstantAttr<StrAttr, "SAME">:$padding,
                         $stride_height, $stride_width)),
-            (LQ_LceBconv2dOp $input, $filter,
+            (LQ_Bconv2dOp $input, $filter,
                         (ConstantOp $post_activation_multiplier),
                         (ConstantOp $post_activation_bias),
                         $channels_in, $dilation_height_factor, $dilation_width_factor,
@@ -113,12 +113,12 @@ foreach actFnPair = [[TFL_ReluOp, TFL_AF_Relu],
 def Conv2DFilter : AttrConstraint<CPred<"IsConv2DFilter($_self)">>;
 def Bitpack : NativeCodeCall<"Bitpack($_builder, $0)">;
 
-def : Pat<(LQ_LceBconv2dOp $input, (ConstantOp Conv2DFilter:$filter),
+def : Pat<(LQ_Bconv2dOp $input, (ConstantOp Conv2DFilter:$filter),
             $post_activation_multiplier, $post_activation_bias,
             $channels_in, $dilation_height_factor, $dilation_width_factor,
             $fused_activation_function,
             $pad_values, $padding, $stride_height, $stride_width),
-          (LQ_LceBconv2dOp $input, (ConstantOp (Bitpack $filter)),
+          (LQ_Bconv2dOp $input, (ConstantOp (Bitpack $filter)),
             $post_activation_multiplier, $post_activation_bias,
             $channels_in, $dilation_height_factor, $dilation_width_factor,
             $fused_activation_function,

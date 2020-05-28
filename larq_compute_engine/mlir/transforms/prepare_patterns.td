@@ -7,9 +7,9 @@ include "larq_compute_engine/mlir/transforms/op_removal_patterns.td"
 
 // This relies on implementation details of larq.math.sign. We should make
 // this more general in the future
-def : Pat<(TF_SignOp (TF_AddV2Op (TF_SignOp $arg), $c)), (LQ_LceBsignOp $arg),
+def : Pat<(TF_SignOp (TF_AddV2Op (TF_SignOp $arg), $c)), (LQ_BsignOp $arg),
           [], (addBenefit 100)>;
-def : Pat<(TF_SignOp (TF_AddV2Op $c, (TF_SignOp $arg))), (LQ_LceBsignOp $arg),
+def : Pat<(TF_SignOp (TF_AddV2Op $c, (TF_SignOp $arg))), (LQ_BsignOp $arg),
           [], (addBenefit 100)>;
 
 // Copied from legalize_patterns.td
@@ -39,9 +39,9 @@ def GetScaleVector : NativeCodeCall<"GetScaleVector($0)">;
 def GetNumChannels : NativeCodeCall<"GetNumChannels($_builder, $0)">;
 def IsDataFormatNHWC : ConstantAttr<TF_ConvnetDataFormatAttr, "NHWC">;
 
-def : Pat<(TF_Conv2DOp (LQ_LceBsignOp $input), (ConstantOp $filter), IsIntList1XY1:$strides, $use_cudnn,
+def : Pat<(TF_Conv2DOp (LQ_BsignOp $input), (ConstantOp $filter), IsIntList1XY1:$strides, $use_cudnn,
                        $padding, $explicit_padding, IsDataFormatNHWC: $data_format, IsIntList1XY1:$dilations),
-          (LQ_LceBconv2dOp $input,
+          (LQ_Bconv2dOp $input,
             (TF_TransposeOp (TF_DivOp (ConstantOp $filter), (ConstantOp (GetScaleVector $filter))), (ConstantOp ConstantAttr<I32VectorElementsAttr<4>, "{3, 0, 1, 2}">)),
             (ConstantOp (GetScaleVector $filter)),
             (ConstantOp (GetConstantVector<"0.0f"> $filter)),
@@ -64,10 +64,10 @@ def ConstFloatValueIsOne : Constraint<
 def SamePadding : Constraint<CPred<"IsSamePadding($0, $1, $2, $3)">>;
 
 def : Pat<(TF_Conv2DOp: $output
-            (TF_PadV2Op (LQ_LceBsignOp $input), (ConstantOp $paddings), (ConstantOp $pad_values)),
+            (TF_PadV2Op (LQ_BsignOp $input), (ConstantOp $paddings), (ConstantOp $pad_values)),
             (ConstantOp $filter), IsIntList1XY1:$strides, $use_cudnn, ConstantAttr<StrAttr, "VALID">,
             $explicit_padding, IsDataFormatNHWC: $data_format, IsIntList1XY1:$dilations),
-          (LQ_LceBconv2dOp $input,
+          (LQ_Bconv2dOp $input,
             (TF_TransposeOp (TF_DivOp (ConstantOp $filter), (ConstantOp (GetScaleVector $filter))), (ConstantOp ConstantAttr<I32VectorElementsAttr<4>, "{3, 0, 1, 2}">)),
             (ConstantOp (GetScaleVector $filter)),
             (ConstantOp (GetConstantVector<"0.0f"> $filter)),
