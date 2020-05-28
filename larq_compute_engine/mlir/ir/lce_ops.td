@@ -57,7 +57,13 @@ def LarqDialect : Dialect {
 
 // Base class for the operation in this dialect
 class LQ_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<LarqDialect, mnemonic, traits>;
+    Op<LarqDialect, mnemonic, traits> {
+
+  let extraClassDeclaration = [{
+    std::vector<uint8_t> buildCustomOptions();
+  }];
+}
+
 
 def LQ_BsignOp : LQ_Op<"Bsign", [NoSideEffect, SameOperandsAndResultType]> {
   let summary = "Returns an element-wise indication of the binary sign of a number.";
