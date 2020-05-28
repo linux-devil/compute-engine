@@ -19,6 +19,9 @@ std::unique_ptr<OperationPass<FuncOp>> CreateOptimizeLCEPass(
 // Creates an instance of the TensorFlow Lite dialect QuantizeTFL pass.
 std::unique_ptr<OperationPass<FuncOp>> CreateHybridQuantizePass();
 
+// Creates an instance of LegalizeLCE pass.
+std::unique_ptr<OperationPass<FuncOp>> CreateLegalizeLCEPass();
+
 }  // namespace TFL
 }  // namespace mlir
 
